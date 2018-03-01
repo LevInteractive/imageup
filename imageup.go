@@ -7,17 +7,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"cloud.google.com/go/storage"
 )
 
-type errorJSON struct {
+type jsonResp struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
-// FileUpload represents both the input and output for a file.
-type FileUpload struct {
+// ImageConfig represents both the input and output for a file.
+type ImageConfig struct {
 	Name   string `json:"name"`
 	URL    string `json:"url"`
 	Fill   bool   `json:"fill"`
@@ -59,77 +60,92 @@ func jsonResponse(w http.ResponseWriter, code int, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
+// Remove all files in array. This is used to clean up something that went
+// wrong.
+func removeAll(files []ImageConfig) {
+	for _, conf := range files {
+		go RemoveFile(conf.Name)
+	}
+}
+
 // UploadFile uploads a file to the server
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", GetEnv("CORS", "*"))
 
-	// Validate the incoming request.
-	if r.Method != http.MethodPost {
-		log.Printf("Error with the request (non-POST)")
-		jsonResponse(w, http.StatusMethodNotAllowed, errorJSON{
-			http.StatusMethodNotAllowed,
-			"fail",
+	switch r.Method {
+	case http.MethodDelete:
+		for _, fname := range strings.Split(r.FormValue("files"), ",") {
+			go RemoveFile(strings.TrimSpace(fname))
+		}
+
+		jsonResponse(w, http.StatusOK, jsonResp{
+			http.StatusOK,
+			"file(s) queued to be removed",
 		})
-		return
-	}
-
-	// Grab the file from the request.
-	file, handle, err := r.FormFile("file")
-	if err != nil {
-		log.Printf("Error retrieving file: %v", err)
-		jsonResponse(w, http.StatusBadRequest, errorJSON{
-			http.StatusBadRequest,
-			"problem finding the file",
-		})
-		return
-	}
-
-	defer file.Close()
-
-	// Parse the file configuration json array.
-	var fileConfig []FileUpload
-
-	if json.Unmarshal([]byte(r.FormValue("sizes")), &fileConfig) != nil {
-		log.Printf("Error handling params: %v", err)
-		log.Printf("This is what the config looks like: %v", r.FormValue("sizes"))
-		jsonResponse(w, http.StatusNotAcceptable, errorJSON{
-			http.StatusBadRequest,
-			"there is a problem with the size configuration",
-		})
-		return
-	}
-	log.Printf("the files: %v", fileConfig)
-
-	if len(fileConfig) < 1 {
-		log.Printf("No size sent with request.")
-		jsonResponse(w, http.StatusNotAcceptable, errorJSON{
-			http.StatusBadRequest,
-			"there were no size instructions sent with request",
-		})
-		return
-	}
-
-	log.Printf("These are the sizes: %v", fileConfig)
-
-	var uploadedFiles []FileUpload
-
-	// Handle the file uploads.
-	for fileConfig := range conf {
-		path, err := UploadFile(file, conf, handle)
+	case http.MethodPost:
+		// Grab the file from the request.
+		file, handle, err := r.FormFile("file")
 		if err != nil {
-			log.Printf("Error uploading file: %v", err)
-			jsonResponse(w, http.StatusBadRequest, errorJSON{
+			log.Printf("Error retrieving file: %v", err)
+			jsonResponse(w, http.StatusBadRequest, jsonResp{
 				http.StatusBadRequest,
-				"invalid",
+				"problem finding the file",
 			})
 			return
 		}
-		uploadedFiles = append(uploadedFiles, path)
+
+		defer file.Close()
+
+		// Parse the file configuration json array.
+		var configs []ImageConfig
+
+		if json.Unmarshal([]byte(r.FormValue("sizes")), &configs) != nil {
+			log.Printf("Error handling params: %v", err)
+			log.Printf("This is what the config looks like: %v", r.FormValue("sizes"))
+			jsonResponse(w, http.StatusNotAcceptable, jsonResp{
+				http.StatusBadRequest,
+				"there is a problem with the size configuration",
+			})
+			return
+		}
+
+		if len(configs) < 1 {
+			log.Printf("No size sent with request.")
+			jsonResponse(w, http.StatusNotAcceptable, jsonResp{
+				http.StatusBadRequest,
+				"there were no size instructions sent with request",
+			})
+			return
+		}
+
+		var uploadedFiles []ImageConfig
+
+		// Handle the file uploads.
+		for _, conf := range configs {
+			log.Printf("Processing image with size: %v", conf)
+			c, err := UploadFile(file, conf, handle)
+			if err != nil {
+				log.Printf("Error uploading file: %v", err)
+				removeAll(uploadedFiles)
+				jsonResponse(w, http.StatusBadRequest, jsonResp{
+					http.StatusBadRequest,
+					"invalid",
+				})
+				return
+			}
+			uploadedFiles = append(uploadedFiles, c)
+		}
+
+		jsonResponse(w, http.StatusCreated, uploadedFiles)
+
+	default:
+		log.Printf("Error with the request (non-POST or non-DELETE)")
+		jsonResponse(w, http.StatusMethodNotAllowed, jsonResp{
+			http.StatusMethodNotAllowed,
+			"fail",
+		})
 	}
 
-	log.Printf("Value: %s", r.FormValue("sizes"))
-	log.Printf("path: %s", path)
-	jsonResponse(w, http.StatusCreated, &FileUpload{})
 }
 
 func main() {
@@ -143,7 +159,7 @@ func main() {
 	}
 
 	log.Printf("Listening on port %s. Using bucket %s.", port, bucket)
-	app.bh = bh
+	App.bh = bh
 
 	http.HandleFunc("/", handleRequest)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
