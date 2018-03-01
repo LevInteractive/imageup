@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"image/jpeg"
 	"log"
 	"mime/multipart"
 
@@ -36,7 +35,7 @@ func getDimensions(name string) (int, int, error) {
 
 	defer rc.Close()
 
-	img, err := jpeg.Decode(rc)
+	img, err := imaging.Decode(rc)
 
 	if err != nil {
 		return 0, 0, err
@@ -50,9 +49,11 @@ func getDimensions(name string) (int, int, error) {
 // UploadFile adds a file to GCP.
 func UploadFile(f multipart.File, config ImageConfig, fh *multipart.FileHeader) (ImageConfig, error) {
 	name := fmt.Sprintf("%s-%s.jpg", config.Name, uuid.NewV4().String())
+
 	img, err := imaging.Decode(f)
 
 	if err != nil {
+		log.Println("error when decoding")
 		return ImageConfig{}, err
 	}
 
@@ -71,11 +72,13 @@ func UploadFile(f multipart.File, config ImageConfig, fh *multipart.FileHeader) 
 	}
 
 	if err := imaging.Encode(w, img, imaging.JPEG); err != nil {
+		log.Println("error when writing to cloud")
 		return ImageConfig{}, err
 	}
 
 	// Close the connection.
 	if err := w.Close(); err != nil {
+		log.Println("error when closing connection")
 		return ImageConfig{}, err
 	}
 
@@ -93,9 +96,10 @@ func UploadFile(f multipart.File, config ImageConfig, fh *multipart.FileHeader) 
 	)
 
 	return ImageConfig{
-		Name:   config.Name,
-		Width:  width,
-		Height: height,
-		URL:    publicURL,
+		FileName: name,
+		Name:     config.Name,
+		Width:    width,
+		Height:   height,
+		URL:      publicURL,
 	}, nil
 }

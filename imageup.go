@@ -19,11 +19,12 @@ type jsonResp struct {
 
 // ImageConfig represents both the input and output for a file.
 type ImageConfig struct {
-	Name   string `json:"name"`
-	URL    string `json:"url"`
-	Fill   bool   `json:"fill"`
-	Width  int    `json:"width"`
-	Height int    `json:"height"`
+	FileName string `json:"fileName"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Fill     bool   `json:"fill"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
 }
 
 // AppConfig for the global singleton
@@ -64,7 +65,7 @@ func jsonResponse(w http.ResponseWriter, code int, data interface{}) {
 // wrong.
 func removeAll(files []ImageConfig) {
 	for _, conf := range files {
-		go RemoveFile(conf.Name)
+		go RemoveFile(conf.FileName)
 	}
 }
 
@@ -123,16 +124,28 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		// Handle the file uploads.
 		for _, conf := range configs {
 			log.Printf("Processing image with size: %v", conf)
+
+			if _, err = file.Seek(0, os.SEEK_SET); err != nil {
+				log.Printf("Error seeking file: %v", err)
+				removeAll(uploadedFiles)
+				jsonResponse(w, http.StatusBadRequest, jsonResp{
+					http.StatusBadRequest,
+					"error seeking file",
+				})
+				return
+			}
+
 			c, err := UploadFile(file, conf, handle)
 			if err != nil {
 				log.Printf("Error uploading file: %v", err)
 				removeAll(uploadedFiles)
 				jsonResponse(w, http.StatusBadRequest, jsonResp{
 					http.StatusBadRequest,
-					"invalid",
+					"unknown error while uploading",
 				})
 				return
 			}
+
 			uploadedFiles = append(uploadedFiles, c)
 		}
 

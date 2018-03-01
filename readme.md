@@ -19,6 +19,7 @@ docker run -it --rm levinteractive/imageup \
 
 * `BUCKET_ID` default: null (required)
 * `CACHE_MAX_AGE` default: 86400
+* `SERVER_HOST` default: localhost
 * `SERVER_PORT` default: 31111
 * `CORS` default: "*"
 
@@ -90,6 +91,7 @@ The response objects will always be in the same order they were sent.
 ```json
 [
   {
+    "fileName": "generatedname.jpg",
     "name": "large",
     "url": "https://the-public-url",
     "width": 500,
@@ -97,6 +99,7 @@ The response objects will always be in the same order they were sent.
     "fill": true
   },
   {
+    "fileName": "generatedname.jpg",
     "name": "thumb",
     "url": "https://the-public-url",
     "width": 500,
