@@ -4,7 +4,7 @@ It's recommended this be run as a private microservice (most likely within a
 Kubernetes cluster) because it does not handle any type of authentication. That
 should be done by the application interfacing with this service.
 
-### Usage
+## Usage
 
 You can use docker or just create a binary and run it.
 
@@ -15,22 +15,24 @@ docker run -it --rm levinteractive/imageup \
   -e SERVER_PORT="8080"
 ```
 
-### Environmental Variables
+## Environmental Variables
 
 * `BUCKET_ID` default: null (required)
 * `CACHE_MAX_AGE` default: 86400
 * `SERVER_PORT` default: 31111
 * `CORS` default: "*"
 
-### API
+## API
 
-##### Remove file(s) from storage
+### Remove file(s) from storage
 
 Send a `DELETE` to `/` with the following argument.
 
+**Arguments:**
+
 * `files` - A comma-delimited list of files. "file1, file2, etc"
 
-*Example Request:*
+**Example by cURL:**
 
 ```shell
 curl -X DELETE \
@@ -41,14 +43,14 @@ curl -X DELETE \
 ```
 
 
-##### Add files to storage
+### Add files to storage
 
 Send a `POST` to `/` with the following arguments.
 
+**Arguments:**
+
 * `file` - Binary file data)
 * `sizes` - Array of file configurations to return
-
-*sizes:*
 
 The `file` will be converted to all of the dimensions specified in the `sizes`
 argument. If the array below was sent, two images would be saved and returned.
@@ -70,7 +72,7 @@ argument. If the array below was sent, two images would be saved and returned.
 ]
 ```
 
-*Example Request:*
+**Example by cURL:**
 
 ```shell
 curl -X POST \
@@ -81,7 +83,7 @@ curl -X POST \
   -F 'sizes=[{"name": "foobar", "width":100, "height": 100, "fill": false}]'
 ```
 
-### Response
+## Response
 
 The response objects will always be in the same order they were sent.
 
@@ -104,7 +106,7 @@ The response objects will always be in the same order they were sent.
 ]
 ```
 
-### Errors
+## Errors
 
 The `code` will be a relevant [http code](https://golang.org/pkg/net/http/#pkg-constants).
 
