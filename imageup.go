@@ -163,7 +163,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	port := GetEnv("SERVER_PORT", "31111")
-	bucket := GetEnv("BUCKET_ID", "worktaps-dev")
+	bucket := GetEnv("BUCKET_ID", "default")
 
 	bh, err := configureStorage(bucket)
 

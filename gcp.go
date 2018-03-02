@@ -91,7 +91,7 @@ func UploadFile(f multipart.File, config ImageConfig, fh *multipart.FileHeader) 
 
 	publicURL := fmt.Sprintf(
 		"https://storage.googleapis.com/%s/%s",
-		"worktaps-dev",
+		GetEnv("BUCKET_ID", "default"),
 		name,
 	)
 
