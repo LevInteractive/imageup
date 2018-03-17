@@ -158,7 +158,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 			"fail",
 		})
 	}
-
 }
 
 func main() {

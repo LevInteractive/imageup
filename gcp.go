@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"mime/multipart"
 
 	"cloud.google.com/go/storage"
 	"github.com/disintegration/imaging"
+	"github.com/rwcarlsen/goexif/exif"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -22,6 +24,30 @@ func RemoveFile(name string) error {
 	}
 
 	return err
+}
+
+// Return the orientation integer.
+// This is inspired from: https://github.com/disintegration/imaging/issues/30
+func getOrientation(f io.Reader) (ot int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			ot = 1
+		}
+	}()
+
+	x, err := exif.Decode(f)
+	if err != nil {
+		return 1, nil
+	}
+
+	tag, err := x.Get(exif.Orientation)
+	if err != nil {
+		return 1, err
+	}
+
+	ot, _ = tag.Int(0)
+
+	return int(ot), nil
 }
 
 // Grab the width and height of an image in the cloud.
@@ -63,6 +89,37 @@ func UploadFile(f multipart.File, config ImageConfig, fh *multipart.FileHeader) 
 	w.ACL = []storage.ACLRule{{Entity: storage.AllUsers, Role: storage.RoleReader}}
 	w.ContentType = "image/jpeg"
 	w.CacheControl = fmt.Sprintf("public, max-age=%s", GetEnv("CACHE_MAX_AGE", "86400"))
+
+	// Get the dimensions from the exif data and rotate accordingly.
+	f2, err := fh.Open()
+	if err != nil {
+		return ImageConfig{}, err
+	}
+
+	ot, err := getOrientation(f2)
+	if err != nil {
+		return ImageConfig{}, err
+	}
+
+	switch {
+	case ot == 2:
+		img = imaging.FlipH(img)
+	case ot == 3:
+		img = imaging.Rotate180(img)
+	case ot == 4:
+		img = imaging.FlipH(img)
+		img = imaging.Rotate180(img)
+	case ot == 5:
+		img = imaging.FlipV(img)
+		img = imaging.Rotate270(img)
+	case ot == 6:
+		img = imaging.Rotate270(img)
+	case ot == 7:
+		img = imaging.FlipV(img)
+		img = imaging.Rotate90(img)
+	case ot == 8:
+		img = imaging.Rotate90(img)
+	}
 
 	// Do image processing while at the same time writing to the cloud.
 	if config.Fill == true {

@@ -36,3 +36,7 @@
 [[constraint]]
   name = "github.com/disintegration/imaging"
   version = "1.3.0"
+
+[[constraint]]
+  branch = "go1"
+  name = "github.com/rwcarlsen/goexif"

@@ -26,6 +26,12 @@
   version = "v2.0.0"
 
 [[projects]]
+  branch = "go1"
+  name = "github.com/rwcarlsen/goexif"
+  packages = ["exif","tiff"]
+  revision = "17202558c8d9c3fd047859f1a5e73fd9ae709187"
+
+[[projects]]
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
@@ -82,6 +88,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6591e69cea514103517a4a39922571416f82f772d21fe79e05622345a5ea8eb7"
+  inputs-digest = "2985c1061f5dd1674b197fc7f9bed94e916e6c54e7cc4198bccfa2f7cd2052e7"
   solver-name = "gps-cdcl"
   solver-version = 1
