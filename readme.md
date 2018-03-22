@@ -6,8 +6,8 @@ should be done by the application interfacing with this service.
 
 * [Usage](#usage)
 * [API](docs/api.md)
-* [Kubernetes Example](examples/k8s)
-* Example App (coming soon)
+* [Kubernetes example](examples/k8s)
+* [Express app example](examples/node)
 
 ## Usage
 
