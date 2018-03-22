@@ -1,5 +1,11 @@
 # ImageUp for Google Cloud Platform (Storage)
 
+Imageup is a microservice which handles the heavy lifting of image resizing and
+uploading to Google Cloud Storage. Essentially, you send it a full size image
+and basic instructions and it will send back an array of hosted images based on
+those instructions. With Imageup, you never need to store images locally on disk
+which is ideal when running multiple nodes at once.
+
 It's recommended this be run as a private microservice (most likely within a
 Kubernetes cluster) because it does not handle any type of authentication. That
 should be done by the application interfacing with this service.
