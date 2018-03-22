@@ -11,7 +11,9 @@ should be done by the application interfacing with this service.
 
 ## Usage
 
-The easiest way to use this is to simply pull and run it using docker.
+The easiest way to use this is to simply pull and run it using docker. Note that
+`GOOGLE_APPLICATION_CREDENTIALS` is only required if you aren't running this in
+a Google Cloud environment. Otherwise, it's already set by default.
 
 ```
 docker run -it --rm levinteractive/imageup \
