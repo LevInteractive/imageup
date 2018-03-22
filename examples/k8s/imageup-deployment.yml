@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: imageup-deployment
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: imageup
+    spec:
+      volumes:
+      - name: google-cloud-key
+        secret:
+          secretName: pubsub-key
+      containers:
+      - image: levinteractive/imageup:1.0.3
+        name: imageup
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 31111
+        env:
+        - name: BUCKET_ID
+          value: my-bucket
+        - name: GOOGLE_APPLICATION_CREDENTIALS
+          value: /var/secrets/google/key.json
+        volumeMounts:
+        - name: google-cloud-key
+          mountPath: /var/secrets/google
