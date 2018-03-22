@@ -94,8 +94,8 @@ The response objects will always be in the same order they were sent.
     "fileName": "generatedname.jpg",
     "name": "large",
     "url": "https://the-public-url",
-    "width": 500,
-    "height": 500,
+    "width": 1000,
+    "height": 1000,
     "fill": true
   },
   {
