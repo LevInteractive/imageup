@@ -65,7 +65,7 @@ func jsonResponse(w http.ResponseWriter, code int, data interface{}) {
 // wrong.
 func removeAll(files []ImageConfig) {
 	for _, conf := range files {
-		go RemoveFile(conf.FileName)
+		go RemoveFileFromGCP(conf.FileName)
 	}
 }
 
@@ -76,7 +76,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodDelete:
 		for _, fname := range strings.Split(r.FormValue("files"), ",") {
-			go RemoveFile(strings.TrimSpace(fname))
+			go RemoveFileFromGCP(strings.TrimSpace(fname))
 		}
 
 		jsonResponse(w, http.StatusOK, jsonResp{
@@ -135,7 +135,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			c, err := UploadFile(file, conf, handle)
+			c, err := UploadFile(conf, handle)
 			if err != nil {
 				log.Printf("Error uploading file: %v", err)
 				removeAll(uploadedFiles)
