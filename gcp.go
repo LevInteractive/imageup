@@ -7,17 +7,35 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-
-	_ "image/jpeg"
+	"time"
 
 	"cloud.google.com/go/storage"
+
+	_ "image/jpeg"
+	_ "image/png"
+
 	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
 	uuid "github.com/satori/go.uuid"
 )
 
+// FileName for a saved image.
+func FileName(mimeType string) (string, error) {
+	uid := uuid.NewV4().String()
+	d := time.Now().Format("2006-01-02-03-04-05")
+
+	switch mimeType {
+	case "image/jpeg":
+		return fmt.Sprintf("%s-%s.jpg", d, uid), nil
+	case "image/png":
+		return fmt.Sprintf("%s-%s.png", d, uid), nil
+	default:
+		return "", fmt.Errorf("this format is not supported: %s", mimeType)
+	}
+}
+
 // GetOrientation returns the orientation integer.
-// This is inspired from: https://github.com/disintegration/imaging/issues/30
+// See: https://github.com/disintegration/imaging/issues/30
 func GetOrientation(f io.Reader) (ot int, err error) {
 	x, err := exif.Decode(f)
 	if err != nil {
@@ -55,53 +73,12 @@ func RemoveFileFromGCP(name string) error {
 	return err
 }
 
-// Seek back to the beginning of the file. This should be called after each
-// read.
-func seekBack(f *multipart.File) error {
-	if _, err := (*f).Seek(0, 0); err != nil {
-		log.Printf("error seeking back: %v", err)
-		return err
-	}
-	return nil
-}
-
-// UploadFile adds a file to GCP.
-func UploadFile(config ImageConfig, fh *multipart.FileHeader) (ImageConfig, error) {
-	ctx := context.Background()
-
-	// Grab the file reader.
-	f, err := fh.Open()
-	if err != nil {
-		return ImageConfig{}, err
-	}
-
-	defer f.Close()
-
-	// This will be what the image is saved as. Using the uuid to create a unique
-	// ID. This is good enough for us for now.
-	name := fmt.Sprintf("%s-%s.jpg", config.Name, uuid.NewV4().String())
-
-	// We know what the public url is going to be before even uploading it.
-	publicURL := fmt.Sprintf(
-		"https://storage.googleapis.com/%s/%s",
-		GetEnv("BUCKET_ID", "default"),
-		name,
-	)
-
+// Manipulate the image based on config and ot.
+func Manipulate(f io.Reader, config ImageConfig, ot int) (image.Image, error) {
 	img, err := imaging.Decode(f)
 	if err != nil {
 		log.Printf("error when decoding the image for imaging lib: %s", err)
-		return ImageConfig{}, err
-	}
-
-	// Set the seeker back so we can continue to read from the file.
-	seekBack(&f)
-
-	// Get the orientation of the image and rotate accordingly.
-	ot, err := GetOrientation(f)
-	if err != nil {
-		log.Printf("error when getting orientation from exif info: %s", err)
-		return ImageConfig{}, err
+		return img, err
 	}
 
 	switch {
@@ -126,35 +103,94 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (ImageConfig, erro
 
 	// Do image processing while at the same time writing to the cloud.
 	if config.Fill == true {
-		img = imaging.Fill(img, config.Width, config.Height, imaging.Center, imaging.Lanczos)
+		img = imaging.Fill(
+			img,
+			config.Width,
+			config.Height,
+			imaging.Center,
+			imaging.Lanczos,
+		)
 	} else {
 		img = imaging.Fit(img, config.Width, config.Height, imaging.Lanczos)
 	}
 
+	return img, nil
+}
+
+// Seek back to the beginning of the file. This should be called after each
+// read.
+func seekBack(f *multipart.File) error {
+	if _, err := (*f).Seek(0, 0); err != nil {
+		log.Printf("error seeking back: %v", err)
+		return err
+	}
+	return nil
+}
+
+// UploadFile a file to GCP.
+func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, error) {
+	mimeType := fh.Header.Get("Content-Type")
+	name, err := FileName(mimeType)
+	if err != nil {
+		return nil, err
+	}
+
+	publicURL := fmt.Sprintf(
+		"https://storage.googleapis.com/%s/%s",
+		GetEnv("BUCKET_ID", "default"),
+		name,
+	)
+
+	f, err := fh.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	defer f.Close()
+
+	ot, err := GetOrientation(f)
+	if err != nil {
+		return nil, err
+	}
+
+	seekBack(&f)
+
+	img, err := Manipulate(f, config, ot)
+	if err != nil {
+		return nil, err
+	}
+
 	obj := App.bh.Object(name)
 
-	// Prep the writer for the gcp object.
-	w := obj.NewWriter(ctx)
+	w := obj.NewWriter(context.Background())
 	w.ACL = []storage.ACLRule{{
 		Entity: storage.AllUsers,
 		Role:   storage.RoleReader,
 	}}
-	w.ContentType = "image/jpeg"
-	w.CacheControl = fmt.Sprintf("public, max-age=%s", GetEnv("CACHE_MAX_AGE", "86400"))
+	w.ContentType = mimeType
+	w.CacheControl = fmt.Sprintf(
+		"public, max-age=%s",
+		GetEnv("CACHE_MAX_AGE", "86400"),
+	)
 
-	if err := imaging.Encode(w, img, imaging.JPEG); err != nil {
+	format := map[string]imaging.Format{
+		"image/png":  imaging.PNG,
+		"image/jpeg": imaging.JPEG,
+	}
+
+	if err := imaging.Encode(w, img, format[mimeType]); err != nil {
 		log.Println("error when writing to cloud")
 		w.Close()
-		return ImageConfig{}, err
+		return nil, err
 	}
 
 	// Close the connection.
 	if err := w.Close(); err != nil {
 		log.Println("error when closing connection")
-		return ImageConfig{}, err
+		return nil, err
 	}
 
-	return ImageConfig{
+	return &ImageConfig{
 		FileName: name,
 		Name:     config.Name,
 		Width:    config.Width,

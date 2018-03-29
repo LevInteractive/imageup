@@ -1,24 +1,5 @@
 ## API
 
-### Remove file(s) from storage
-
-Send a `DELETE` to `/` with the following argument.
-
-**Arguments:**
-
-* `files` - A comma-delimited list of files. "file1, file2, etc"
-
-**Example by cURL:**
-
-```shell
-curl -X DELETE \
-  http://localhost:31111/ \
-  -H 'cache-control: no-cache' \
-  -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
-  -F 'files=foobar-82f100f-4bfd-4671-a0c1-9fc662782.jpg,foobar-38ef100f-4bfd-4671-a0c1-9fc667f2d924.jpg'
-```
-
-
 ### Add files to storage
 
 Send a `POST` to `/` with the following arguments.
@@ -34,13 +15,11 @@ argument. If the array below was sent, two images would be saved and returned.
 ```json
 [
   {
-    "name": "large",
     "width": 1000,
     "height": 1000,
     "fill": false
   },
   {
-    "name": "thumb",
     "width": 500,
     "height": 500,
     "fill": true
@@ -61,13 +40,15 @@ curl -X POST \
 
 ## Response
 
-The response objects will always be in the same order they were sent.
+The response objects will always be in the same order they were sent. The
+`fileName` property contains the new generated unqiue name for this file. This
+is the same value that should be stored and used to remove the file froms
+storage.
 
 ```json
 [
   {
     "fileName": "generatedname.jpg",
-    "name": "large",
     "url": "https://the-public-url",
     "width": 1000,
     "height": 1000,
@@ -75,7 +56,6 @@ The response objects will always be in the same order they were sent.
   },
   {
     "fileName": "generatedname.jpg",
-    "name": "thumb",
     "url": "https://the-public-url",
     "width": 500,
     "height": 500,
@@ -83,6 +63,24 @@ The response objects will always be in the same order they were sent.
   }
 ]
 ```
+### Remove file(s) from storage
+
+Send a `DELETE` to `/` with the following argument.
+
+**Arguments:**
+
+* `files` - A comma-delimited list of files. "file1, file2, etc"
+
+**Example by cURL:**
+
+```shell
+curl -X DELETE \
+  http://localhost:31111/ \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
+  -F 'files=foobar-82f100f-4bfd-4671-a0c1-9fc662782.jpg,foobar-38ef100f-4bfd-4671-a0c1-9fc667f2d924.jpg'
+```
+
 
 ## Errors
 

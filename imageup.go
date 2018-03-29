@@ -146,7 +146,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			uploadedFiles = append(uploadedFiles, c)
+			uploadedFiles = append(uploadedFiles, *c)
 		}
 
 		jsonResponse(w, http.StatusCreated, uploadedFiles)
