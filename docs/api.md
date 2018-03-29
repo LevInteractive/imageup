@@ -27,6 +27,9 @@ argument. If the array below was sent, two images would be saved and returned.
 ]
 ```
 
+You may include a `name` property which won't effect anything but can
+be used for convinience as it will be passed along to the returned objects.
+
 **Example by cURL:**
 
 ```shell
