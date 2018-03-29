@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/disintegration/imaging"
 )
 
 func openFile(filename string) io.Reader {
@@ -17,15 +19,15 @@ func openFile(filename string) io.Reader {
 
 func TestFileName(t *testing.T) {
 	tests := []struct {
-		mimeType string
-		needle   string
+		format imaging.Format
+		needle string
 	}{
-		{"image/jpeg", "jpg"},
-		{"image/png", "png"},
+		{imaging.JPEG, "jpg"},
+		{imaging.PNG, "png"},
 	}
 
 	for _, tt := range tests {
-		f, _ := FileName(tt.mimeType)
+		f, _ := FileName(tt.format)
 		if strings.Contains(f, tt.needle) != true {
 			t.Errorf("file (%s) did not contain format: %s", f, tt.needle)
 		}

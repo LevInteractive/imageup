@@ -7,6 +7,8 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -19,18 +21,26 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	// JPEGTYPE - image/jpeg
+	JPEGTYPE = "image/jpeg"
+
+	// PNGTYPE - image/jpeg
+	PNGTYPE = "image/png"
+)
+
 // FileName for a saved image.
-func FileName(mimeType string) (string, error) {
+func FileName(ext imaging.Format) (string, error) {
 	uid := uuid.NewV4().String()
 	d := time.Now().Format("2006-01-02-03-04-05")
 
-	switch mimeType {
-	case "image/jpeg":
+	switch ext {
+	case imaging.JPEG:
 		return fmt.Sprintf("%s-%s.jpg", d, uid), nil
-	case "image/png":
+	case imaging.PNG:
 		return fmt.Sprintf("%s-%s.png", d, uid), nil
 	default:
-		return "", fmt.Errorf("this format is not supported: %s", mimeType)
+		return "", fmt.Errorf("this format is not supported: %v", ext)
 	}
 }
 
@@ -129,8 +139,20 @@ func seekBack(f *multipart.File) error {
 
 // UploadFile a file to GCP.
 func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, error) {
-	mimeType := fh.Header.Get("Content-Type")
-	name, err := FileName(mimeType)
+	ext := strings.ToLower(filepath.Ext(fh.Filename))
+	formats := map[string]imaging.Format{
+		".jpg":  imaging.JPEG,
+		".jpeg": imaging.JPEG,
+		".png":  imaging.PNG,
+	}
+	mimes := map[imaging.Format]string{
+		imaging.JPEG: JPEGTYPE,
+		imaging.PNG:  PNGTYPE,
+	}
+	format := formats[ext]
+	mimeType := mimes[format]
+
+	name, err := FileName(format)
 	if err != nil {
 		return nil, err
 	}
@@ -148,10 +170,8 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, err
 
 	defer f.Close()
 
-	ot, err := GetOrientation(f)
-	if err != nil {
-		return nil, err
-	}
+	// Doesn't really matter if this fails. Doing our best to orientate.
+	ot, _ := GetOrientation(f)
 
 	seekBack(&f)
 
@@ -173,12 +193,7 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, err
 		GetEnv("CACHE_MAX_AGE", "86400"),
 	)
 
-	format := map[string]imaging.Format{
-		"image/png":  imaging.PNG,
-		"image/jpeg": imaging.JPEG,
-	}
-
-	if err := imaging.Encode(w, img, format[mimeType]); err != nil {
+	if err := imaging.Encode(w, img, format); err != nil {
 		log.Println("error when writing to cloud")
 		w.Close()
 		return nil, err
