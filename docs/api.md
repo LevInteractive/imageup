@@ -71,6 +71,11 @@ storage.
   }
 ]
 ```
+
+**Note about the generated filename:** The filename that Imageup generates is
+based on the following format: `YYYY-MM-DD-HH-MM-SS-UUIDv4.<file format ext>`.
+The UUIDv4 is generated using [satori/go.uuid](https://github.com/satori/go.uuid).
+
 ### Remove files
 
 Send a `DELETE` to `/` with the following argument.
