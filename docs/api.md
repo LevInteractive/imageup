@@ -1,16 +1,22 @@
 ## API
 
-### Add files to storage
+There are only two endpoints.
+
+* [POST](#post-file)
+* [DELETE](#remove-files)
+
+### Process File
 
 Send a `POST` to `/` with the following arguments.
 
 **Arguments:**
 
-* `file` - Binary file data)
-* `sizes` - Array of file configurations to return
-
-The `file` will be converted to all of the dimensions specified in the `sizes`
-argument. If the array below was sent, two images would be saved and returned.
+* `file`<string> - Binary file data)
+* `sizes`<array> - Array of file configurations to return
+  * `width`<int> - Required. Max width for image
+  * `height`<int> - Required. Max height for image
+  * `fill`<bool> - If true, resize and crop to width and height using the [Lanczos resampling filter](https://github.com/disintegration/imaging#image-resizing).
+  * `name`<string> - As no effect, but is returned with payload if provided for convenience.
 
 ```json
 [
@@ -27,15 +33,14 @@ argument. If the array below was sent, two images would be saved and returned.
 ]
 ```
 
-You may include a `name` property which won't effect anything but can
-be used for convinience as it will be passed along to the returned objects.
+At the moment, processing options are minimal based on our needs, but more could
+easily be added. Please submit a issue for PR for more features.
 
 **Example by cURL:**
 
 ```shell
 curl -X POST \
   http://localhost:31111/ \
-  -H 'cache-control: no-cache' \
   -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
   -F file=@_DSC1814.jpg \
   -F 'sizes=[{"name": "foobar", "width":100, "height": 100, "fill": false}]'
@@ -66,7 +71,7 @@ storage.
   }
 ]
 ```
-### Remove file(s) from storage
+### Remove files
 
 Send a `DELETE` to `/` with the following argument.
 
@@ -79,10 +84,11 @@ Send a `DELETE` to `/` with the following argument.
 ```shell
 curl -X DELETE \
   http://localhost:31111/ \
-  -H 'cache-control: no-cache' \
   -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW' \
   -F 'files=foobar-82f100f-4bfd-4671-a0c1-9fc662782.jpg,foobar-38ef100f-4bfd-4671-a0c1-9fc667f2d924.jpg'
 ```
+
+This will purge both files from the bucket.
 
 
 ## Errors
