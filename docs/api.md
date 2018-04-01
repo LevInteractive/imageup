@@ -2,7 +2,7 @@
 
 There are only two endpoints.
 
-* [POST](#post-file)
+* [POST](#process-file)
 * [DELETE](#remove-files)
 
 ### Process File
@@ -11,10 +11,10 @@ Send a `POST` to `/` with the following arguments.
 
 **Arguments:**
 
-* `file`<string> - Binary file data)
-* `sizes`<array> - Array of file configurations to return
-  * `width`<int> - Required. Max width for image
-  * `height`<int> - Required. Max height for image
+* `file`<string> - Binary file data.
+* `sizes`<array> - Array of file configurations to return.
+  * `width`<int> - Required. Max width for image.
+  * `height`<int> - Required. Max height for image.
   * `fill`<bool> - If true, resize and crop to width and height using the [Lanczos resampling filter](https://github.com/disintegration/imaging#image-resizing).
   * `name`<string> - As no effect, but is returned with payload if provided for convenience.
 
@@ -34,7 +34,7 @@ Send a `POST` to `/` with the following arguments.
 ```
 
 At the moment, processing options are minimal based on our needs, but more could
-easily be added. Please submit a issue for PR for more features.
+be added. Please [submit a issue for PR for more features](https://github.com/LevInteractive/imageup/issues).
 
 **Example by cURL:**
 
