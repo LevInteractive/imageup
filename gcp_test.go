@@ -27,7 +27,7 @@ func TestFileName(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		f, _ := FileName(tt.format)
+		f := FileName(tt.format)
 		if strings.Contains(f, tt.needle) != true {
 			t.Errorf("file (%s) did not contain format: %s", f, tt.needle)
 		}

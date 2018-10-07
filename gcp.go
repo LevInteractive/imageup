@@ -20,17 +20,19 @@ import (
 )
 
 // FileName for a saved image.
-func FileName(ext imaging.Format) (string, error) {
+func FileName(format imaging.Format) string {
 	uid := uuid.NewV4().String()
 	d := time.Now().Format("2006-01-02-03-04-05")
 
-	switch ext {
+	switch format {
 	case imaging.JPEG:
-		return fmt.Sprintf("%s-%s.jpg", d, uid), nil
+		return fmt.Sprintf("%s-%s.jpg", d, uid)
 	case imaging.PNG:
-		return fmt.Sprintf("%s-%s.png", d, uid), nil
+		return fmt.Sprintf("%s-%s.png", d, uid)
+	case imaging.GIF:
+		return fmt.Sprintf("%s-%s.gif", d, uid)
 	default:
-		return "", fmt.Errorf("this format is not supported: %v", ext)
+		return fmt.Sprintf("%s-%s.png", d, uid)
 	}
 }
 
@@ -136,12 +138,16 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, err
 		"image/jpg":  imaging.JPEG,
 		"image/gif":  imaging.GIF,
 	}
-	format := formats[mimeType]
 
-	name, err := FileName(format)
-	if err != nil {
-		return nil, err
+	format, exists := formats[mimeType]
+
+	if exists == false {
+		log.Printf("imageup is uncertain of image type because the mimetype is %s. Assuming/casting as png.", mimeType)
+		format = imaging.PNG
+		mimeType = "image/png"
 	}
+
+	name := FileName(format)
 
 	publicURL := fmt.Sprintf(
 		"https://storage.googleapis.com/%s/%s",
