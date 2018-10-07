@@ -1,4 +1,4 @@
-FROM golang:1.9-alpine
+FROM golang:1.11-alpine
 
 ADD . /go/src/github.com/LevInterctive/imageup/
 WORKDIR /go/src/github.com/LevInterctive/imageup/

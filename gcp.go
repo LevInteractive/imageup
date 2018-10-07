@@ -7,8 +7,6 @@ import (
 	"io"
 	"log"
 	"mime/multipart"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -19,14 +17,6 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
 	uuid "github.com/satori/go.uuid"
-)
-
-const (
-	// JPEGTYPE - image/jpeg
-	JPEGTYPE = "image/jpeg"
-
-	// PNGTYPE - image/jpeg
-	PNGTYPE = "image/png"
 )
 
 // FileName for a saved image.
@@ -139,18 +129,14 @@ func seekBack(f *multipart.File) error {
 
 // UploadFile a file to GCP.
 func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, error) {
-	ext := strings.ToLower(filepath.Ext(fh.Filename))
+	mimeType := fh.Header.Get("Content-Type")
 	formats := map[string]imaging.Format{
-		".jpg":  imaging.JPEG,
-		".jpeg": imaging.JPEG,
-		".png":  imaging.PNG,
+		"image/png":  imaging.PNG,
+		"image/jpeg": imaging.JPEG,
+		"image/jpg":  imaging.JPEG,
+		"image/gif":  imaging.GIF,
 	}
-	mimes := map[imaging.Format]string{
-		imaging.JPEG: JPEGTYPE,
-		imaging.PNG:  PNGTYPE,
-	}
-	format := formats[ext]
-	mimeType := mimes[format]
+	format := formats[mimeType]
 
 	name, err := FileName(format)
 	if err != nil {
