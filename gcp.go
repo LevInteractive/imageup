@@ -4,16 +4,13 @@ import (
 	"context"
 	"fmt"
 	"image"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
-	"log"
 	"mime/multipart"
 	"time"
 
 	"cloud.google.com/go/storage"
-
-	_ "image/jpeg"
-	_ "image/png"
-
 	"github.com/disintegration/imaging"
 	"github.com/rwcarlsen/goexif/exif"
 	uuid "github.com/satori/go.uuid"
@@ -64,12 +61,12 @@ func GetDimensions(f io.Reader) (int, int, error) {
 
 // RemoveFileFromGCP removes a file from GCP.
 func RemoveFileFromGCP(name string) error {
-	log.Printf("Requesting to delete %s", name)
+	Info("Requesting to delete %s", name)
 	ctx := context.Background()
 	err := App.bh.Object(name).Delete(ctx)
 
 	if err != nil {
-		log.Printf("There was an error removing image from storage: %v", err)
+		Error("There was an error removing image from storage: %v", err)
 	}
 
 	return err
@@ -79,7 +76,7 @@ func RemoveFileFromGCP(name string) error {
 func Manipulate(f io.Reader, config ImageConfig, ot int) (image.Image, error) {
 	img, err := imaging.Decode(f)
 	if err != nil {
-		log.Printf("error when decoding the image for imaging lib: %s", err)
+		Error("error when decoding the image for imaging lib: %s", err)
 		return img, err
 	}
 
@@ -123,7 +120,7 @@ func Manipulate(f io.Reader, config ImageConfig, ot int) (image.Image, error) {
 // read.
 func seekBack(f *multipart.File) error {
 	if _, err := (*f).Seek(0, 0); err != nil {
-		log.Printf("error seeking back: %v", err)
+		Error("error seeking back: %v", err)
 		return err
 	}
 	return nil
@@ -142,7 +139,7 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, err
 	format, exists := formats[mimeType]
 
 	if exists == false {
-		log.Printf("imageup is uncertain of image type because the mimetype is %s. Assuming/casting as png.", mimeType)
+		Info("imageup is uncertain of image type because the mimetype is %s. Assuming/casting as png.", mimeType)
 		format = imaging.PNG
 		mimeType = "image/png"
 	}
@@ -186,14 +183,14 @@ func UploadFile(config ImageConfig, fh *multipart.FileHeader) (*ImageConfig, err
 	)
 
 	if err := imaging.Encode(w, img, format); err != nil {
-		log.Println("error when writing to cloud")
+		Error("error when writing to cloud")
 		w.Close()
 		return nil, err
 	}
 
 	// Close the connection.
 	if err := w.Close(); err != nil {
-		log.Println("error when closing connection")
+		Error("error when closing connection")
 		return nil, err
 	}
 

@@ -87,7 +87,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		// Grab the file from the request.
 		file, handle, err := r.FormFile("file")
 		if err != nil {
-			log.Printf("Error retrieving file: %v", err)
+			Error("Error retrieving file: %v", err)
 			jsonResponse(w, http.StatusBadRequest, jsonResp{
 				http.StatusBadRequest,
 				"problem finding the file",
@@ -101,8 +101,8 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		var configs []ImageConfig
 
 		if json.Unmarshal([]byte(r.FormValue("sizes")), &configs) != nil {
-			log.Printf("Error handling params: %v", err)
-			log.Printf("This is what the config looks like: %v", r.FormValue("sizes"))
+			Error("Error handling params: %v", err)
+			Error("This is what the config looks like: %v", r.FormValue("sizes"))
 			jsonResponse(w, http.StatusNotAcceptable, jsonResp{
 				http.StatusBadRequest,
 				"there is a problem with the size configuration",
@@ -111,7 +111,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if len(configs) < 1 {
-			log.Printf("No size sent with request.")
+			Error("No size sent with request.")
 			jsonResponse(w, http.StatusNotAcceptable, jsonResp{
 				http.StatusBadRequest,
 				"there were no size instructions sent with request",
@@ -123,10 +123,10 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 		// Handle the file uploads.
 		for _, conf := range configs {
-			log.Printf("Processing image with size: %v", conf)
+			Info("Processing image with size: %v", conf)
 
 			if _, err = file.Seek(0, os.SEEK_SET); err != nil {
-				log.Printf("Error seeking file: %v", err)
+				Error("Error seeking file: %v", err)
 				removeAll(uploadedFiles)
 				jsonResponse(w, http.StatusBadRequest, jsonResp{
 					http.StatusBadRequest,
@@ -137,7 +137,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 			c, err := UploadFile(conf, handle)
 			if err != nil {
-				log.Printf("Error uploading file: %v", err)
+				Error("Error uploading file: %v", err)
 				removeAll(uploadedFiles)
 				jsonResponse(w, http.StatusBadRequest, jsonResp{
 					http.StatusBadRequest,
@@ -152,7 +152,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		jsonResponse(w, http.StatusCreated, uploadedFiles)
 
 	default:
-		log.Printf("Error with the request (non-POST or non-DELETE)")
+		Error("Error with the request (non-POST or non-DELETE)")
 		jsonResponse(w, http.StatusMethodNotAllowed, jsonResp{
 			http.StatusMethodNotAllowed,
 			"fail",
@@ -170,7 +170,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Listening on port %s. Using bucket %s.", port, bucket)
+	Info("Listening on port %s. Using bucket %s.", port, bucket)
 	App.bh = bh
 
 	http.HandleFunc("/", handleRequest)
