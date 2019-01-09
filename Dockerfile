@@ -1,10 +1,9 @@
-FROM golang:1.11-alpine
+FROM golang:1.11.4-alpine
 
-ADD . /go/src/github.com/LevInterctive/imageup/
-WORKDIR /go/src/github.com/LevInterctive/imageup/
+WORKDIR /src/github.com/LevInterctive/imageup
+ADD . /src/github.com/LevInterctive/imageup
 
-RUN apk add --no-cache git openssl bzr \
-    && go get -u github.com/golang/dep/cmd/dep
+RUN apk add bash ca-certificates git gcc g++ libc-dev
 
-RUN dep ensure && go build -o bin/imageup
+RUN go build -o bin/imageup
 CMD ["./bin/imageup"]
